@@ -62,8 +62,8 @@ export default function ChatInterface({ userProfile }) {
 
     try {
       // Build a daily summary for context memory
-      const dailySummary = `Logged today: Consumed ${consumedCalories} kcal, Burned ${burnedCalories} kcal.`;
-      const response = await chatWithZina(userMessage, userProfile, consumedCalories, weeklyWorkouts, messages, userPreferences);
+      const consumptionPercentage = (consumedCalories / userProfile.calorieBudget) * 100;
+      const response = await chatWithZina(userMessage, userProfile, consumedCalories, weeklyWorkouts, messages, userPreferences, consumptionPercentage);
       
       const assistantMsg = {
         role: 'assistant',
@@ -134,11 +134,12 @@ export default function ChatInterface({ userProfile }) {
 
   const progressPercentage = Math.min((consumedCalories / userProfile.calorieBudget) * 100, 100);
   const isOverBudget = consumedCalories > userProfile.calorieBudget;
+  const isWarningMode = progressPercentage >= 75;
 
   let progressColor = '#10b981'; // Green
   if (progressPercentage >= 85) {
     progressColor = '#ef4444'; // Red
-  } else if (progressPercentage >= 50) {
+  } else if (isWarningMode) {
     progressColor = '#f59e0b'; // Orange
   }
 
@@ -156,8 +157,8 @@ export default function ChatInterface({ userProfile }) {
         <div className="header-info">
           <h2>זינה AI</h2>
           <div className="stats-container">
-            <span className="calories-text">
-              {Number(userProfile.calorieBudget) - Number(consumedCalories)} קק"ל נותרו
+            <span className={`calories-text ${isWarningMode ? 'warning-text' : ''}`}>
+              {Math.max(0, Number(userProfile.calorieBudget) - Number(consumedCalories))} קק"ל נותרו
             </span>
             <span className="workout-text">
               אימונים השבוע: {weeklyWorkouts}/3 {weeklyWorkouts >= 3 && '⭐ VIP'}

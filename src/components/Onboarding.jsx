@@ -17,11 +17,10 @@ export default function Onboarding({ onSave }) {
   const [calculatedBudget, setCalculatedBudget] = useState(0);
 
   const calculateBudget = () => {
-    const { gender, age, height, weight, activityLevel } = formData;
+    const { gender, age, height, weight } = formData;
     const w = parseFloat(weight);
     const h = parseFloat(height);
     const a = parseInt(age);
-    const factor = parseFloat(activityLevel);
 
     if (!w || !h || !a) return 0;
 
@@ -32,7 +31,8 @@ export default function Onboarding({ onSave }) {
       bmr = 10 * w + 6.25 * h - 5 * a - 161;
     }
 
-    return Math.round(bmr * factor);
+    // New Global Core Formula: (BMR * 1.2) - 500 (Weight Loss Mode)
+    return Math.round((bmr * 1.2) - 500);
   };
 
   const handleNext = (e) => {
@@ -179,19 +179,6 @@ export default function Onboarding({ onSave }) {
                 required 
               />
             </div>
-          </div>
-
-          <div className="form-group">
-            <label>רמת פעילות:</label>
-            <select 
-              value={formData.activityLevel} 
-              onChange={e => setFormData({...formData, activityLevel: e.target.value})}
-            >
-              <option value="1.2">יושבני (ללא פעילות גופנית)</option>
-              <option value="1.375">פעילות קלה (1-3 פעמים בשבוע)</option>
-              <option value="1.55">פעילות בינונית (3-5 פעמים בשבוע)</option>
-              <option value="1.725">פעילות רבה (6-7 פעמים בשבוע)</option>
-            </select>
           </div>
 
           <button type="submit" className="start-btn">חשב תקציב קלוריות</button>

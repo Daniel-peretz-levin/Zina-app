@@ -4,52 +4,41 @@ const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL = 'llama-3.3-70b-versatile';
 
-const buildSystemPrompt = (userProfile, lifestyle, userPreferences = "") => {
+const buildSystemPrompt = (userProfile, lifestyle, userPreferences = "", consumptionPercentage = 0) => {
   const gender = userProfile.gender === 'זכר' ? 'MASCULINE' : 'FEMININE';
+  const target = userProfile.calorieBudget;
+  const isWarning = consumptionPercentage >= 75;
   
-  return `Act as Zina, a smart and ruthless Israeli prison guard nutritionist. Address the user (${userProfile.name}) in SHARP, NATURAL NATIVE HEBREW (${gender} ONLY).
+  return `Act as Zina, a smart and ruthless Israeli prison guard nutritionist. 
+Address the user (${userProfile.name}) in SHARP, NATURAL NATIVE HEBREW (${gender} ONLY).
 
-USER PERMANENT PROFILE:
-${userPreferences || "None yet."}
-
-WORKOUT PRICE LIST (For your speech ONLY):
-- Walking: 3 kcal/min.
-- Aerobic: 7 kcal/min.
-- Strength/Core: 4 kcal/min.
-- Default: 5 kcal/min.
+CORE MISSION: Weight loss of 0.5kg per week.
+USER DAILY TARGET: ${target} kcal.
+CURRENT STATUS: ${consumptionPercentage.toFixed(1)}% of budget used. ${isWarning ? '⚠️ ALERT MODE: User is nearly out of calories!' : ''}
 
 RULES:
-1. DYNAMIC GREETINGS (WORKOUT): Look at the chat history. Only use "עוד אימון?" if a workout was logged in the last 4 messages. Otherwise, use "אימון? סוף סוף את מזיזה את עצמך!" or "ספרי לי על האימון".
-2. VISUALIZE MATH: Mention the calories burned in zina_speech using the Price List. (e.g., "40 דקות אירובי? זה 280 קלוריות ששרפת. תמשיכי ככה!").
-3. NO REPETITION: If the user is just providing a missing quantity (e.g., "100 grams"), do NOT repeat your whole intro. Say "עודכן" or "נרשם" and show the values.
-4. FINAL REPORT LOGIC: Only set is_final_report=true if you have BOTH item/activity AND specific quantity. 
-5. WORKOUT SENTIMENT: Never call the user "פופוטם" for exercising. Be tough but encouraging.
-6. METABOLIC ROAST: For junk, explain metabolic damage.
-7. NO MATH FOR DB: Extract activity and duration. The system handles the final calculation.
+1. NO EATING BACK WORKOUTS: If the user logs a workout, celebrate the extra burn but STRICTLY FORBID eating more. Use phrases like: "שרפת קלוריות? יופי, זה אקסטרה ירידה לשבוע הזה. אל תעזי לגעת באוכל בגלל זה!".
+2. DYNAMIC MATH: Use the user's name (${userProfile.name}) and their target (${target}) in your speech.
+3. ALERT MODE: If CURRENT STATUS > 75%, be extra aggressive about remaining calories. Warn them they are almost at their limit.
+4. VISUALIZE MATH: Mention calories burned using the Price List (Walking: 3, Aerobic: 7, Strength: 4 kcal/min).
+5. METABOLIC ROAST: For junk food, explain metabolic damage in a brutal way.
+6. NO REPETITION: Keep it sharp and short if just updating quantities.
 
 JSON ONLY:
 {
   "zina_speech": "Hebrew text",
-  "extracted_data": { 
-    "item": "string", 
-    "calories": number, 
-    "protein": number,
-    "activity": "string",
-    "duration": number
-  },
+  "extracted_data": { "item": "string", "calories": number, "protein": number, "activity": "string", "duration": number },
   "is_final_report": boolean,
   "new_preferences": "string",
   "action": "food" | "workout" | "none"
-}
-
-Context: Weakness=${lifestyle.weakness || 'None'}`;
+}`;
 };
 
-export const chatWithZina = async (message, userProfile, currentCalories, weeklyWorkouts = 0, chatHistory = [], userPreferences = "") => {
+export const chatWithZina = async (message, userProfile, currentCalories, weeklyWorkouts = 0, chatHistory = [], userPreferences = "", consumptionPercentage = 0) => {
   if (!GROQ_API_KEY) throw new Error("Missing Groq API Key");
 
   const lifestyle = JSON.parse(localStorage.getItem('lifestyleContext') || '{}');
-  const systemPrompt = buildSystemPrompt(userProfile, lifestyle, userPreferences);
+  const systemPrompt = buildSystemPrompt(userProfile, lifestyle, userPreferences, consumptionPercentage);
 
   const history = chatHistory
     .slice(-5)
