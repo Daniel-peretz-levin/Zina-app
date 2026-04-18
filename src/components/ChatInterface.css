@@ -32,6 +32,10 @@
   font-size: 1.1rem;
 }
 
+.calories-text.warning-text {
+  color: #f59e0b;
+}
+
 .stats-container {
   display: flex;
   align-items: center;
