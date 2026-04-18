@@ -61,69 +61,38 @@ export default function ChatInterface({ userProfile }) {
     setIsLoading(true);
 
     try {
-      // Build a daily summary for context memory
-      const consumptionPercentage = (consumedCalories / userProfile.calorieBudget) * 100;
-      const response = await chatWithZina(userMessage, userProfile, consumedCalories, weeklyWorkouts, messages, userPreferences, consumptionPercentage);
+      const { cleanText, data } = await chatWithZina(userMessage, userProfile, consumedCalories, messages, userPreferences);
       
-      const assistantMsg = {
-        role: 'assistant',
-        text: response.zina_speech,
-        action: response.action,
-        data: response.extracted_data
-      };
+      setMessages(prev => [...prev, { role: 'assistant', text: cleanText }]);
       
-      setMessages(prev => [...prev, assistantMsg]);
-      if (response.new_preferences) {
-        const updatedPrefs = (userPreferences + " " + response.new_preferences).trim();
-        setUserPreferences(updatedPrefs);
-        localStorage.setItem(`user_preferences_${userProfile.name}`, updatedPrefs);
-      }
-      
-      if (response.is_final_report && response.action && response.extracted_data) {
-        let calories = 0;
-        let protein = 0;
-        let calories_burned = 0;
-        let itemName = response.extracted_data.item || response.extracted_data.activity || 'Unknown';
+      if (data) {
+        // Separate logic for preferences
+        if (data.preference_update) {
+          const updated = (userPreferences + " " + data.preference_update).trim().slice(-500);
+          setUserPreferences(updated);
+          localStorage.setItem(`user_preferences_${userProfile.name}`, updated);
+        }
 
-        if (response.action === 'food') {
-          calories = Number(response.extracted_data.calories || 0);
-          protein = Number(response.extracted_data.protein || 0);
-          setConsumedCalories(prev => Number(prev) + calories);
-        }
-        
-        if (response.action === 'workout') {
-          const duration = Number(response.extracted_data.duration || 0);
-          const activity = (response.extracted_data.activity || '').toLowerCase();
+        // Separate logic for logging
+        if (data.status === 'complete') {
+          const calories = Number(data.calories || 0);
           
-          // Official Workout Price List
-          if (activity.includes('הליכה')) {
-            calories_burned = duration * 3;
-          } else if (activity.includes('אירובי')) {
-            calories_burned = duration * 7;
-          } else if (activity.includes('כוח') || activity.includes('בטן')) {
-            calories_burned = duration * 4;
-          } else {
-            calories_burned = duration * 5; // Default
+          if (data.type === 'food') {
+            setConsumedCalories(prev => prev + calories);
+          } else if (data.type === 'workout') {
+            setBurnedCalories(prev => prev + calories);
+            setWeeklyWorkouts(prev => prev + 1);
           }
-          
-          setBurnedCalories(prev => Number(prev) + calories_burned);
-          setWeeklyWorkouts(prev => Number(prev) + 1);
+
+          // Database sync
+          await saveToSheet(data, userProfile);
         }
-        
-        // Immediate database sync - ONLY on final report
-        await saveToSheet({
-          name: userProfile.name,
-          action: response.action,
-          item: itemName,
-          calories,
-          protein,
-          calories_burned
-        });
       }
+
     } catch (error) {
       const errorMsg = error.message === 'RATE_LIMIT' 
-        ? 'זינה בטעינה... נסה שוב בעוד 30 שניות.'
-        : `אוי, משהו השתבש: ${error.message}. נסי שוב מאוחר יותר.`;
+        ? 'זינה צריכה רגע לנשום. נסי שוב בעוד כמה שניות.'
+        : `אוי, משהו השתבש בחיבור לזינה. נסי שוב בעוד כמה שניות.`;
       setMessages(prev => [...prev, { role: 'assistant', text: errorMsg }]);
     } finally {
       setIsLoading(false);
