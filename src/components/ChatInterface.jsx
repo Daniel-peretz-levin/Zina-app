@@ -21,11 +21,11 @@ export default function ChatInterface({ userProfile }) {
       const count = await getWeeklyWorkouts(userProfile.name);
       setWeeklyWorkouts(count);
     };
-    
+
     // Daily Reset/Restore Logic
     const today = new Date().toLocaleDateString();
     const savedData = JSON.parse(localStorage.getItem('zina_daily_stats') || '{}');
-    
+
     if (savedData.date === today) {
       setConsumedCalories(Number(savedData.consumed || 0));
       setBurnedCalories(Number(savedData.burned || 0));
@@ -62,9 +62,9 @@ export default function ChatInterface({ userProfile }) {
 
     try {
       const { cleanText, data } = await chatWithZina(userMessage, userProfile, consumedCalories, messages, userPreferences);
-      
+
       setMessages(prev => [...prev, { role: 'assistant', text: cleanText }]);
-      
+
       if (data) {
         // Separate logic for preferences
         if (data.preference_update) {
@@ -76,7 +76,7 @@ export default function ChatInterface({ userProfile }) {
         // Separate logic for logging
         if (data.status === 'complete') {
           const calories = Number(data.calories || 0);
-          
+
           if (data.type === 'food') {
             setConsumedCalories(prev => prev + calories);
           } else if (data.type === 'workout') {
@@ -90,7 +90,7 @@ export default function ChatInterface({ userProfile }) {
       }
 
     } catch (error) {
-      const errorMsg = error.message === 'RATE_LIMIT' 
+      const errorMsg = error.message === 'RATE_LIMIT'
         ? 'זינה צריכה רגע לנשום. נסי שוב בעוד כמה שניות.'
         : `אוי, משהו השתבש בחיבור לזינה. נסי שוב בעוד כמה שניות.`;
       setMessages(prev => [...prev, { role: 'assistant', text: errorMsg }]);
@@ -132,9 +132,9 @@ export default function ChatInterface({ userProfile }) {
             <span className="workout-text">
               אימונים השבוע: {weeklyWorkouts}/3 {weeklyWorkouts >= 3 && '⭐ VIP'}
             </span>
-            <button 
-              onClick={handleResetProfile} 
-              className="reset-btn" 
+            <button
+              onClick={handleResetProfile}
+              className="reset-btn"
               title="איפוס פרופיל"
               style={{ cursor: 'pointer', pointerEvents: 'auto', position: 'relative', zIndex: 999 }}
             >
