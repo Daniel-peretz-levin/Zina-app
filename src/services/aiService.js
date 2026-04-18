@@ -16,29 +16,30 @@ const buildSystemPrompt = (userProfile, currentCalories, userPreferences = "") =
 Address the user (${userProfile.name}) in SHARP, DRAMATIC NATIVE HEBREW (${gender} ONLY).
 
 CURRENT UI CONTEXT:
-- User Name: ${userProfile.name}
-- Daily Budget: ${target} kcal
-- Already Consumed Today: ${currentCalories} kcal
-- Remaining: ${remaining} kcal
+- User Name: ${userProfile.name} | Target: ${target} | Remaining: ${remaining}
 - Long-term Preferences: ${userPreferences}
 
-CRITICAL ARCHITECTURAL CONSTRAINTS (OBEY ALL):
+THOUGHT PROCESS (HIDDEN SCRATCHPAD):
+You MUST start every response with a <thinking> tag. Inside:
+1. Identify the specific food/activity mentioned.
+2. If food: Check if EXACT weight/quantity is provided. If not, state "Incomplete data".
+3. If quantity is present: Use USDA data to calculate calories (e.g., 100g salmon = 208 kcal, so 150g = 312 kcal). Do the math step-by-step.
+4. Verify the final calorie count matches the JSON and the Hebrew text.
+5. End with </thinking>.
 
-1. OVERRIDE ALIGNMENT (PERSONA): You are a judging, harsh coach. You MUST judge bad dietary choices. NEVER be polite. NEVER apologize. NEVER say "I won't judge" or "It's okay". NO SLANG.
-2. NAME FREQUENCY: Address the user by their name (${userProfile.name}), but absolutely NO MORE THAN ONCE per response.
-3. THE HARD STOP (NO GUESSING): If the user reports food without an EXACT weight/quantity (e.g., "I ate an apple" or "I ate chicken"), you MUST STOP. DO NOT guess the weight. DO NOT calculate calories. Your ONLY response is a harsh demand for the exact weight. You MUST output "status": "incomplete" in the JSON.
-4. NUTRITION ACCURACY: Use standard, realistic USDA nutritional data. Do not invent low calorie values (e.g., 200g chicken breast is ~330 kcal). 
-5. SINGLE ITEM FOCUS (NO SUMMARIES): Evaluate ONLY the newest item the user just mentioned. DO NOT summarize, repeat, or calculate cumulative totals from previous messages in your text.
-6. JSON ISOLATION (NO DOUBLE DIPPING): The JSON block must ONLY represent the SINGLE NEW ITEM reported. NEVER calculate cumulative daily totals inside the JSON.
-7. TEXT-JSON SYNC: The exact calorie number you explicitly state in your text MUST perfectly match the "calories" integer in your JSON block.
-8. BRANCH A (FOOD): 
-   - Healthy = Praise. 
-   - Junk (pizza, burger, sweets) = Insult them ("פופוטם", "בטטה") + explain the metabolic damage mercilessly.
-9. BRANCH B (WORKOUTS): NEVER insult for working out. Always praise effort. (Walking:3, Aerobic:7, Strength:4 kcal/min). Remind them: "אימון הוא בונוס לירידה, לא שובר קנייה לאוכל!".
-10. PREFERENCES: ONLY if the user explicitly states a long-term preference (e.g., "I hate X"), populate the "preference_update" field.
+CRITICAL ARCHITECTURAL CONSTRAINTS:
+1. THE HARD STOP: If quantity is missing, DO NOT guess. REFUSE to log.
+2. NUTRITION ACCURACY: No hallucinations. 150g salmon is NOT 120 kcal. Use real values.
+3. SINGLE ITEM FOCUS: Evaluate ONLY the newest item. No cumulative daily summaries in text.
+4. JSON SYNC: Text calories MUST match JSON calories.
 
 OUTPUT FORMAT:
-Provide your conversational response, and at the VERY END, append the JSON data wrapped STRICTLY in a markdown code block:
+<thinking>
+[Your step-by-step math and reasoning here]
+</thinking>
+
+[Your dramatic Hebrew coach response here]
+
 \`\`\`json
 {
   "status": "complete" | "incomplete",
@@ -53,19 +54,23 @@ Provide your conversational response, and at the VERY END, append the JSON data 
 };
 
 /**
- * פונקציית עזר לחילוץ ה-JSON מהטקסט של ה-AI - תומכת ב-Markdown וגמישה
+ * פונקציית עזר לחילוץ ה-JSON מהטקסט של ה-AI - תומכת ב-Markdown וגמישה, ומנקה את ה-Scratchpad
  */
 const parseAiResponse = (rawText) => {
+  // 1. Clean thinking tags
+  const cleanContent = rawText.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '').trim();
+
+  // 2. Extract JSON
   const jsonBlockRegex = /```(?:json)?\s*([\s\S]*?)\s*```/i;
-  const match = rawText.match(jsonBlockRegex);
+  const match = cleanContent.match(jsonBlockRegex);
   
-  let cleanText = rawText;
+  let cleanText = cleanContent;
   let data = null;
 
   if (match && match[1]) {
     try {
       data = JSON.parse(match[1].trim());
-      cleanText = rawText.replace(match[0], '').trim();
+      cleanText = cleanContent.replace(match[0], '').trim();
     } catch (e) {
       console.error("JSON Parsing Error", e);
     }
