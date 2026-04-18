@@ -1,0 +1,73 @@
+.onboarding {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.onboarding-card {
+  background-color: var(--surface);
+  padding: 30px;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  text-align: center;
+}
+
+.onboarding-card h1 {
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+.onboarding-card p {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  font-size: 0.95rem;
+}
+
+.form-group {
+  margin-bottom: 20px;
+  text-align: right;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background-color: #0f172a;
+  color: white;
+  font-size: 16px;
+}
+
+.form-group input:focus, .form-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.start-btn {
+  width: 100%;
+  padding: 16px;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  touch-action: manipulation;
+}
+
+.start-btn:hover {
+  background-color: #e11d48;
+}
