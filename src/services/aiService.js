@@ -102,14 +102,9 @@ export const saveToSheet = async (data) => {
   if (!isProfile && (!data.action || data.action === 'none')) return;
 
   const payload = isProfile ? {
-    date: new Date().toISOString(),
     name: data.name,
-    action_type: 'ONBOARDING',
-    food_item: 'New User Profile',
-    calories: data.calorieBudget,
-    protein: 0,
-    calories_burned: 0,
-    metadata: JSON.stringify(data.lifestyleContext || {})
+    gender: data.gender,
+    calorieBudget: data.calorieBudget
   } : {
     date: new Date().toISOString(),
     name: data.name,
